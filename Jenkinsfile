@@ -9,7 +9,13 @@ pipeline {
     stages {
         stage('Install Dependencies') {
             steps {
-                sh 'pip3 install -r requirements.txt'
+                sh '''
+                    if ! command -v pip3 &> /dev/null; then
+                        echo "pip3 not found, installing..."
+                        sudo apt update && sudo apt install -y python3-pip
+                    fi
+                    pip3 install -r requirements.txt
+                '''
             }
         }
 
@@ -34,4 +40,3 @@ pipeline {
         }
     }
 }
-
