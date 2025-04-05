@@ -1,1 +1,38 @@
-# Ansible playbook goes here
+---
+- name: Deploy Flask App
+  hosts: app_servers
+  become: true
+
+  tasks:
+    - name: Ensure necessary packages are installed
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - python3
+        - python3-pip
+        - sqlite
+
+    - name: Install Flask
+      pip:
+        name: flask
+
+    - name: Download artifact from S3
+      amazon.aws.aws_s3:
+        bucket: your-s3-bucket-name
+        object: artifacts/flask_app.tar.gz
+        dest: /tmp/flask_app.tar.gz
+        mode: get
+        overwrite: yes
+      delegate_to: localhost
+
+    - name: Extract the app
+      unarchive:
+        src: /tmp/flask_app.tar.gz
+        dest: /opt/flaskapp
+        remote_src: yes
+
+    - name: Start the Flask app
+      shell: nohup python3 /opt/flaskapp/app/app.py &
+      args:
+        chdir: /opt/flaskapp
