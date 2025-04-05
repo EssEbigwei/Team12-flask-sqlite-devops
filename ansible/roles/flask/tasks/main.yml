@@ -10,7 +10,12 @@
 
 - name: Install Flask
   pip:
-    name: Flask
+    name: 
+    - Flask
+    - boto3
+    - botocore
+    - werkzeug
+  state: present
 
 - name: Create app directory
   file:

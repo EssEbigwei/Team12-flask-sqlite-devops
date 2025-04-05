@@ -19,9 +19,9 @@
 
     - name: Download artifact from S3
       amazon.aws.aws_s3:
-        bucket: your-s3-bucket-name
-        object: artifacts/flask_app.tar.gz
-        dest: /tmp/flask_app.tar.gz
+        bucket: "team12-flasklartifacts"
+        object: "artifacts/flask_app.tar.gz"
+        dest: "/tmp/flask_app.tar.gz"
         mode: get
         overwrite: yes
       delegate_to: localhost
@@ -36,3 +36,17 @@
       shell: nohup python3 /opt/flaskapp/app/app.py &
       args:
         chdir: /opt/flaskapp
+    
+    - name: Create Flask systemd service
+      copy:
+        dest: /etc/systemd/system/flask-app.service
+        content: |
+          [Unit]
+          Description=Flask Web Application
+          After=network.target
+
+          [Service]
+          User=ec2-user
+          WorkingDirectory=/opt/flaskapp
+          ExecStart=/usr/bin/python3 /opt/flaskapp/app/app.py
+          Restart=always
