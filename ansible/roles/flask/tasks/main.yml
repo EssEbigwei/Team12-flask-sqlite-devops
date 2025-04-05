@@ -1,1 +1,29 @@
-# Ansible tasks for Flask role go here
+---
+- name: Install Python3 and pip
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - python3
+    - python3-pip
+    - sqlite
+
+- name: Install Flask
+  pip:
+    name: Flask
+
+- name: Create app directory
+  file:
+    path: /opt/flaskapp
+    state: directory
+
+- name: Copy app files
+  unarchive:
+    src: /tmp/flask_app.tar.gz
+    dest: /opt/flaskapp/
+    remote_src: yes
+
+- name: Run Flask app
+  shell: nohup python3 /opt/flaskapp/app/app.py &
+  args:
+    chdir: /opt/flaskapp
