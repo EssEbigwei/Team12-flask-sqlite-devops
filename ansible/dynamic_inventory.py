@@ -10,7 +10,7 @@ def get_aws_session():
         return boto3.Session(
             aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
             aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
-            region_name=os.environ.get('AWS_REGION', 'us-east-1')
+            region_name=os.environ.get('AWS_REGION', 'us-east-2')
         )
     except Exception as e:
         sys.stderr.write("ERROR: Failed to create AWS session. Check your credentials and environment variables.\n")
