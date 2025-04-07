@@ -9,7 +9,7 @@ pipeline {
             steps {
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: '*/Dizzy-features']],
+                    branches: [[name: '*/Dizzy_features']],
                     doGenerateSubmoduleConfigurations: false,
                     extensions: [],
                     submoduleCfg: [],
