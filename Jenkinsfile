@@ -51,6 +51,7 @@ pipeline {
                         export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
                         export AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
                         export ANSIBLE_HOST_KEY_CHECKING=False
+                        export ANSIBLE_SSH_PRIVATE_KEY_FILE=/var/lib/jenkins/.ssh/id_rsa
 
                         # Debug the inventory output
                         echo "Inventory output:"
