@@ -53,12 +53,7 @@ pipeline {
                         export ANSIBLE_HOST_KEY_CHECKING=False
                         export ANSIBLE_SSH_PRIVATE_KEY_FILE=/var/lib/jenkins/.ssh/id_rsa
 
-                        # Debug the inventory output
-                        echo "Inventory output:"
-                        python3 ansible/dynamic_inventory.py 
-
-
-                        ansible-playbook -i ansible/dynamic_inventory.py ansible/playbook.yaml -v
+                        ansible-playbook -i ansible/inventory ansible/playbook.yaml -v
                     '''
                 }
             }
