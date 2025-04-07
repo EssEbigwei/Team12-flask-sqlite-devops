@@ -13,13 +13,21 @@
         - python3-pip
         - sqlite
 
-    - name: Install Flask
+    - name: Install Flask and boto3
       pip:
-        name: flask
+        name: 
+          - flask
+          - boto3
+
+    - name: Create app directory if it doesn't exist
+      file:
+        path: /opt/flaskapp
+        state: directory
+        mode: '0755'
 
     - name: Download artifact from S3
       amazon.aws.aws_s3:
-        bucket: "team12-flasklartifacts"
+        bucket: "team12-flask-artifact"  # Corrected bucket name
         object: "artifacts/flask_app.tar.gz"
         dest: "/tmp/flask_app.tar.gz"
         mode: get
@@ -32,11 +40,13 @@
         dest: /opt/flaskapp
         remote_src: yes
 
-    - name: Start the Flask app
-      shell: nohup python3 /opt/flaskapp/app/app.py &
+    - name: Initialize database
+      shell: |
+        cd /opt/flaskapp
+        sqlite3 app/data.db < init_db.sql
       args:
-        chdir: /opt/flaskapp
-    
+        creates: /opt/flaskapp/app/data.db
+
     - name: Create Flask systemd service
       copy:
         dest: /etc/systemd/system/flask-app.service
@@ -50,3 +60,13 @@
           WorkingDirectory=/opt/flaskapp
           ExecStart=/usr/bin/python3 /opt/flaskapp/app/app.py
           Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and start Flask service
+      systemd:
+        name: flask-app
+        enabled: yes
+        state: restarted
+        daemon_reload: yes
