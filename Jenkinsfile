@@ -45,7 +45,15 @@ pipeline {
         }
         stage('Deploy with Ansible') {
             steps {
-                sh 'ansible-playbook -i ansible/dynamic_inventory.py ansible/playbook.yaml'
+                withAWS(region: "${AWS_REGION}", credentials: 'aws-creds') {
+                    sh '''
+                        export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+                        export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+                        export AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+                        export ANSIBLE_HOST_KEY_CHECKING=False
+                        ansible-playbook -i ansible/dynamic_inventory.py ansible/playbook.yaml -v
+                    '''
+                }
             }
         }
     }
