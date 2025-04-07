@@ -51,6 +51,12 @@ pipeline {
                         export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
                         export AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
                         export ANSIBLE_HOST_KEY_CHECKING=False
+
+                        # Debug the inventory output
+                        echo "Inventory output:"
+                        python3 ansible/dynamic_inventory.py 
+
+
                         ansible-playbook -i ansible/dynamic_inventory.py ansible/playbook.yaml -v
                     '''
                 }
