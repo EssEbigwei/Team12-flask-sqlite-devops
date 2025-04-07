@@ -45,7 +45,7 @@ pipeline {
         }
         stage('Deploy with Ansible') {
             steps {
-                sh 'ansible-playbook -i ansible/dynamic_inventory.py ansible/playbook.yml'
+                sh 'ansible-playbook -i ansible/dynamic_inventory.py ansible/playbook.yaml'
             }
         }
     }
