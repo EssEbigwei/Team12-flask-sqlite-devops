@@ -35,6 +35,13 @@
       delegate_to: localhost
       become: false
 
+    - name: Copy artifact to target server
+      copy:
+        src: "/tmp/flask_app.tar.gz"
+        dest: "/tmp/flask_app.tar.gz"
+        mode: '0644'
+      become: true
+
     - name: Extract the app
       unarchive:
         src: /tmp/flask_app.tar.gz
