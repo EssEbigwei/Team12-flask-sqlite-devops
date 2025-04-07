@@ -52,7 +52,7 @@ def main():
                         'ansible_user': os.environ.get('ANSIBLE_USER', 'ec2-user'),
                         'ansible_ssh_private_key_file': os.environ.get(
                             'ANSIBLE_SSH_PRIVATE_KEY_FILE', 
-                            '/home/ubuntu/Key.pem'
+                            '/home/ubuntu/Key2.pem'
                         )
                     }
                 }
