@@ -33,6 +33,7 @@
         mode: get
         overwrite: yes
       delegate_to: localhost
+      become: false
 
     - name: Extract the app
       unarchive:
