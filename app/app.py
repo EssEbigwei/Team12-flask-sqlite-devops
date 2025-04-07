@@ -2,7 +2,10 @@ from flask import Flask, render_template
 import sqlite3
 import os
 
-app = Flask(__name__)
+# Set the template directory to be one level up from the app.py file
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
+app = Flask(__name__, template_folder=template_dir)
+
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data.db')
 
 def get_messages():
