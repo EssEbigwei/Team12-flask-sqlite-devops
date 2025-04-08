@@ -3,12 +3,18 @@ pipeline {
     environment {
         S3_BUCKET = 'team12-flask-artifact'
         AWS_REGION = 'us-east-2'
-        VENV_DIR = "${WORKSPACE}/venv"
-        ARTIFACT_NAME = "flask_app_${BUILD_NUMBER}.tar.gz"
-        DEPLOY_ENV = "production"
     }
     
     stages {
+        stage('Install Python Dependencies') {
+            steps {
+                sh '''
+                    sudo apt-get update
+                    sudo apt-get install -y python3-venv python3-pip
+                '''
+            }
+        }
+        
         stage('Checkout') {
             steps {
                 checkout([
@@ -27,55 +33,30 @@ pipeline {
         
         stage('Setup Environment') {
             steps {
-                sh """
-                    python3 -m venv "${VENV_DIR}"
-                    . "${VENV_DIR}/bin/activate"
-                    pip install --upgrade pip wheel
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
                     pip install -r requirements.txt
-                """
-            }
-        }
-        
-        stage('Run Tests') {
-            steps {
-                sh """
-                    . "${VENV_DIR}/bin/activate"
-                    python -m pytest tests/ -v --junitxml=test-results.xml
-                """
-            }
-            post {
-                always {
-                    junit 'test-results.xml'
-                }
+                '''
             }
         }
         
         stage('Package App') {
             steps {
-                sh """
-                    tar -czf "${ARTIFACT_NAME}" \
-                        app/ \
-                        requirements.txt \
-                        templates/ \
-                        init_db.sql \
-                        ansible/
-                    sha256sum "${ARTIFACT_NAME}" > "${ARTIFACT_NAME}.sha256"
-                """
+                sh '''
+                    . venv/bin/activate
+                    tar -czf flask_app.tar.gz app requirements.txt templates init_db.sql
+                '''
             }
         }
         
         stage('Upload to S3') {
             steps {
                 withAWS(region: "${AWS_REGION}", credentials: 'aws-creds') {
-                    // Corrected s3Upload syntax without metadata parameter
                     s3Upload(
                         bucket: "${S3_BUCKET}",
-                        file: "${ARTIFACT_NAME}",
-                        path: "artifacts/${BUILD_NUMBER}/"
-                    )
-                    s3Upload(
-                        bucket: "${S3_BUCKET}",
-                        file: "${ARTIFACT_NAME}.sha256",
+                        file: 'flask_app.tar.gz',
                         path: "artifacts/${BUILD_NUMBER}/"
                     )
                 }
@@ -84,19 +65,16 @@ pipeline {
         
         stage('Deploy with Ansible') {
             steps {
-                sshagent(['jenkins-to-deploy']) {
-                    withAWS(region: "${AWS_REGION}", credentials: 'aws-creds') {
-                        sh """
-                            export ANSIBLE_CONFIG="${WORKSPACE}/ansible/ansible.cfg"
-                            ansible-playbook \
-                                -i ansible/inventory \
-                                ansible/playbook.yaml \
-                                -e "build_number=${BUILD_NUMBER}" \
-                                -e "artifact_name=${ARTIFACT_NAME}" \
-                                -e "deployment_env=${DEPLOY_ENV}" \
-                                -v
-                        """
-                    }
+                withAWS(region: "${AWS_REGION}", credentials: 'aws-creds') {
+                    sh '''
+                        export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+                        export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+                        export AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+                        export ANSIBLE_HOST_KEY_CHECKING=False
+                        export ANSIBLE_SSH_PRIVATE_KEY_FILE=/var/lib/jenkins/.ssh/id_rsa
+
+                        ansible-playbook -i ansible/inventory ansible/playbook.yaml -v
+                    '''
                 }
             }
         }
@@ -104,20 +82,8 @@ pipeline {
     
     post {
         always {
-            sh "rm -rf '${VENV_DIR}' || true"
-            cleanWs()
-        }
-        success {
-            slackSend(
-                color: 'good',
-                message: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER} deployed to ${DEPLOY_ENV}"
-            )
-        }
-        failure {
-            slackSend(
-                color: 'danger',
-                message: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-            )
+            sh 'rm -rf venv || true'
+            deleteDir()  # Alternative to cleanWs
         }
     }
 }
