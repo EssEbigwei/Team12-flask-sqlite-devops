@@ -6,12 +6,15 @@ pipeline {
     }
     
     stages {
-        stage('Install Python Dependencies') {
+        stage('Check Python Environment') {
             steps {
-                sh '''
-                    sudo apt-get update
-                    sudo apt-get install -y python3-venv python3-pip
-                '''
+                script {
+                    // Check if python3-venv is already installed
+                    def pythonEnvCheck = sh(script: 'python3 -m venv --help >/dev/null 2>&1', returnStatus: true)
+                    if (pythonEnvCheck != 0) {
+                        error("Python virtual environment package not found. Please install python3-venv on the Jenkins server manually.")
+                    }
+                }
             }
         }
         
