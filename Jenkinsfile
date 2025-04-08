@@ -5,7 +5,7 @@ pipeline {
         AWS_REGION = 'us-east-2'
         VENV_DIR = "${WORKSPACE}/venv"
         ARTIFACT_NAME = "flask_app_${BUILD_NUMBER}.tar.gz"
-        DEPLOY_ENV = "production" // Can be parameterized
+        DEPLOY_ENV = "production"
     }
     
     stages {
@@ -53,15 +53,12 @@ pipeline {
         stage('Package App') {
             steps {
                 sh """
-                    # Include only necessary files
                     tar -czf "${ARTIFACT_NAME}" \
                         app/ \
                         requirements.txt \
                         templates/ \
                         init_db.sql \
                         ansible/
-                    
-                    # Generate checksum
                     sha256sum "${ARTIFACT_NAME}" > "${ARTIFACT_NAME}.sha256"
                 """
             }
@@ -70,14 +67,11 @@ pipeline {
         stage('Upload to S3') {
             steps {
                 withAWS(region: "${AWS_REGION}", credentials: 'aws-creds') {
+                    // Corrected s3Upload syntax without metadata parameter
                     s3Upload(
                         bucket: "${S3_BUCKET}",
                         file: "${ARTIFACT_NAME}",
-                        path: "artifacts/${BUILD_NUMBER}/",
-                        metadata: [
-                            'commit': env.GIT_COMMIT,
-                            'build': "${BUILD_NUMBER}"
-                        ]
+                        path: "artifacts/${BUILD_NUMBER}/"
                     )
                     s3Upload(
                         bucket: "${S3_BUCKET}",
