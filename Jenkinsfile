@@ -3,13 +3,13 @@ pipeline {
     environment {
         S3_BUCKET = 'team12-flask-artifact'
         AWS_REGION = 'us-east-2'
+        ANSIBLE_SSH_PRIVATE_KEY_FILE = '/var/lib/jenkins/.ssh/id_rsa'
     }
     
     stages {
         stage('Check Python Environment') {
             steps {
                 script {
-                    // Check if python3-venv is already installed
                     def pythonEnvCheck = sh(script: 'python3 -m venv --help >/dev/null 2>&1', returnStatus: true)
                     if (pythonEnvCheck != 0) {
                         error("Python virtual environment package not found. Please install python3-venv on the Jenkins server manually.")
@@ -69,15 +69,20 @@ pipeline {
         stage('Deploy with Ansible') {
             steps {
                 withAWS(region: "${AWS_REGION}", credentials: 'aws-creds') {
-                    sh '''
-                        export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-                        export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-                        export AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
-                        export ANSIBLE_HOST_KEY_CHECKING=False
-                        export ANSIBLE_SSH_PRIVATE_KEY_FILE=/var/lib/jenkins/.ssh/id_rsa
-
-                        ansible-playbook -i ansible/inventory ansible/playbook.yaml -v
-                    '''
+                    script {
+                        // Get the S3 artifact path for this build
+                        def s3ArtifactPath = "artifacts/${BUILD_NUMBER}/flask_app.tar.gz"
+                        
+                        sh """
+                            export ANSIBLE_HOST_KEY_CHECKING=False
+                            
+                            ansible-playbook -i ansible/inventory ansible/playbook.yaml -v \
+                                -e "build_number=${BUILD_NUMBER}" \
+                                -e "s3_bucket=${S3_BUCKET}" \
+                                -e "s3_path=${s3ArtifactPath}" \
+                                -e "aws_region=${AWS_REGION}"
+                        """
+                    }
                 }
             }
         }
