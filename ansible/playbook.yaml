@@ -2,9 +2,20 @@
 - name: Deploy Flask App
   hosts: app_servers
   become: true
+  vars:
+    app_dir: /opt/flaskapp
+    app_user: ec2-user
+    s3_bucket: "team12-flask-artifact"
+    s3_path: "artifacts/{{ build_number }}/{{ artifact_name }}"
+    venv_path: "{{ app_dir }}/venv"
 
   tasks:
-    - name: Ensure necessary packages are installed
+    - name: Validate build number
+      fail:
+        msg: "Build number is required"
+      when: build_number is not defined
+
+    - name: Install system dependencies
       yum:
         name: "{{ item }}"
         state: present
@@ -12,69 +23,101 @@
         - python3
         - python3-pip
         - sqlite
+      tags: packages
 
-    - name: Install Flask and boto3
-      pip:
-        name: 
-          - flask
-          - boto3
-
-    - name: Create app directory if it doesn't exist
+    - name: Create application directory
       file:
-        path: /opt/flaskapp
+        path: "{{ app_dir }}"
         state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
         mode: '0755'
 
     - name: Download artifact from S3
       amazon.aws.aws_s3:
-        bucket: "team12-flask-artifact"  # Corrected bucket name
-        object: "artifacts/flask_app.tar.gz"
-        dest: "/tmp/flask_app.tar.gz"
+        bucket: "{{ s3_bucket }}"
+        object: "{{ s3_path }}"
+        dest: "/tmp/{{ artifact_name }}"
         mode: get
-        overwrite: yes
+      register: download_result
+      until: download_result is succeeded
+      retries: 3
+      delay: 10
       delegate_to: localhost
       become: false
 
-    - name: Copy artifact to target server
-      copy:
-        src: "/tmp/flask_app.tar.gz"
-        dest: "/tmp/flask_app.tar.gz"
-        mode: '0644'
-      become: true
+    - name: Verify artifact checksum
+      stat:
+        path: "/tmp/{{ artifact_name }}.sha256"
+      register: checksum_file
+      delegate_to: localhost
+      become: false
 
-    - name: Extract the app
+    - name: Validate artifact integrity
+      shell: |
+        cd /tmp && sha256sum -c "{{ artifact_name }}.sha256"
+      when: checksum_file.stat.exists
+      delegate_to: localhost
+      become: false
+
+    - name: Transfer artifact to target
+      copy:
+        src: "/tmp/{{ artifact_name }}"
+        dest: "/tmp/"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+
+    - name: Clean previous deployment
+      file:
+        path: "{{ app_dir }}"
+        state: absent
+      when: cleanup_previous|default(true)|bool
+
+    - name: Extract application
       unarchive:
-        src: /tmp/flask_app.tar.gz
-        dest: /opt/flaskapp
+        src: "/tmp/{{ artifact_name }}"
+        dest: "{{ app_dir }}"
         remote_src: yes
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        extra_opts: [--strip-components=1]
+
+    - name: Create Python virtualenv
+      pip:
+        requirements: "{{ app_dir }}/requirements.txt"
+        virtualenv: "{{ venv_path }}"
+        virtualenv_command: python3 -m venv
+        state: present
+        executable: "{{ venv_path }}/bin/pip"
 
     - name: Initialize database
-      shell: |
-        cd /opt/flaskapp
-        sqlite3 app/data.db < init_db.sql
+      command: >
+        sqlite3 "{{ app_dir }}/app/data.db" < "{{ app_dir }}/init_db.sql"
       args:
-        creates: /opt/flaskapp/app/data.db
+        creates: "{{ app_dir }}/app/data.db"
 
-    - name: Create Flask systemd service
-      copy:
+    - name: Configure systemd service
+      template:
+        src: templates/flask-app.service.j2
         dest: /etc/systemd/system/flask-app.service
-        content: |
-          [Unit]
-          Description=Flask Web Application
-          After=network.target
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart flask-app
 
-          [Service]
-          User=ec2-user
-          WorkingDirectory=/opt/flaskapp
-          ExecStart=/usr/bin/python3 /opt/flaskapp/app/app.py
-          Restart=always
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
 
-          [Install]
-          WantedBy=multi-user.target
-
-    - name: Enable and start Flask service
+    - name: Enable application service
       systemd:
         name: flask-app
         enabled: yes
+        state: started
+
+  handlers:
+    - name: Restart flask-app
+      systemd:
+        name: flask-app
         state: restarted
-        daemon_reload: yes
