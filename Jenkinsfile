@@ -83,7 +83,7 @@ pipeline {
     post {
         always {
             sh 'rm -rf venv || true'
-            deleteDir()  # Alternative to cleanWs
+            deleteDir()
         }
     }
 }
