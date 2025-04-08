@@ -49,7 +49,7 @@ def main():
                 'app_servers': {
                     'hosts': hosts,
                     'vars': {
-                        'ansible_user': os.environ.get('ANSIBLE_USER', 'ec2-user'),
+                        'ansible_user': os.environ.get('ANSIBLE_USER', 'deploy'),
                         'ansible_ssh_private_key_file': os.environ.get(
                             'ANSIBLE_SSH_PRIVATE_KEY_FILE', 
                             '/var/lib/jenkins/.ssh/id_rsa'
