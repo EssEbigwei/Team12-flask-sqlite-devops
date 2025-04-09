@@ -29,6 +29,9 @@
         - sqlite
       tags: packages
 
+    - name: Include deployment tasks
+  include_tasks: ansible/main.yaml
+
 
 
   handlers:
