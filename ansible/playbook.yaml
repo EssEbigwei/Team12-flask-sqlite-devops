@@ -30,7 +30,7 @@
       tags: packages
 
     - name: Include deployment tasks
-      include_tasks: ansible/roles/flask/tasks/main.yaml
+      include_tasks: ansible/roles/flask/tasks/main.yml
 
 
 
