@@ -8,7 +8,7 @@
 
   vars:
     app_dir: /opt/flaskapp
-    app_user: ec2-user
+    app_user: deploy
     s3_bucket: "team12-flask-artifact"
     s3_path: "artifacts/{{ build_number }}/{{ artifact_name }}"
     venv_path: "{{ app_dir }}/venv"
