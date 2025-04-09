@@ -1,35 +1,11 @@
 ---
-- name: Install system dependencies
-  yum:
-    name: "{{ item }}"
-    state: present
-  loop:
-    - python3
-    - python3-pip
-    - sqlite
-  tags: packages
-
 - name: Create application directory structure
   file:
-    path: "{{ app_dir }}/app"
+    path: "{{ app_dir }}"
     state: directory
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: '0755'
-
-- name: Configure AWS credentials
-  become: yes
-  copy:
-    content: |
-      [default]
-      aws_access_key_id = {{ aws_access_key }}
-      aws_secret_access_key = {{ aws_secret_key }}
-      region = {{ aws_region }}
-    dest: /home/{{ app_user }}/.aws/credentials
-    owner: "{{ app_user }}"
-    group: "{{ app_user }}"
-    mode: '0600'
-  when: aws_access_key is defined and aws_secret_key is defined
 
 - name: Download application from S3
   aws_s3:
@@ -37,29 +13,26 @@
     object: "{{ s3_path }}"
     dest: "/tmp/flask_app.tar.gz"
     mode: get
-    region: "{{ aws_region }}"
 
-- name: Extract application files
+- name: Extract application
   unarchive:
     src: "/tmp/flask_app.tar.gz"
     dest: "{{ app_dir }}"
     remote_src: yes
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
-    extra_opts: [--strip-components=1]  # Removes the top-level directory from the archive
+    extra_opts: [--strip-components=1]
 
 - name: Create virtual environment
   pip:
     virtualenv: "{{ venv_path }}"
     requirements: "{{ app_dir }}/requirements.txt"
     virtualenv_command: python3 -m venv
-    state: present
 
 - name: Install Gunicorn
   pip:
     name: gunicorn
     virtualenv: "{{ venv_path }}"
-    state: present
 
 - name: Configure systemd service
   template:
@@ -69,10 +42,3 @@
     group: root
     mode: '0644'
   notify: Restart flask-app
-
-- name: Ensure service is enabled and running
-  systemd:
-    name: flask-app
-    state: started
-    enabled: yes
-    daemon_reload: yes

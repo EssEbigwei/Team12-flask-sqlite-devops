@@ -1,0 +1,13 @@
+[Unit]
+Description=Flask Application
+After=network.target
+
+[Service]
+User={{ app_user }}
+Group={{ app_user }}
+WorkingDirectory={{ app_dir }}
+Environment="PATH={{ venv_path }}/bin"
+ExecStart={{ venv_path }}/bin/gunicorn --bind 0.0.0.0:8000 app:app
+
+[Install]
+WantedBy=multi-user.target

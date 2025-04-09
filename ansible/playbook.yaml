@@ -4,35 +4,17 @@
   become: true
   become_method: sudo
   become_user: root
-  gather_facts: false  # Disable if not needed to speed up deployment
+  gather_facts: true  # Should be enabled for proper functioning
 
   vars:
     app_dir: /opt/flaskapp
     app_user: deploy
     s3_bucket: "team12-flask-artifact"
-    s3_path: "artifacts/{{ build_number }}/{{ artifact_name }}"
+    s3_path: "artifacts/{{ build_number }}/flask_app.tar.gz"  # Fixed variable name
     venv_path: "{{ app_dir }}/venv"
 
-  tasks:
-    - name: Validate build number
-      fail:
-        msg: "Build number is required"
-      when: build_number is not defined
-
-    - name: Install system dependencies
-      yum:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - python3
-        - python3-pip
-        - sqlite
-      tags: packages
-
-    - name: Include deployment tasks
-      include_tasks: ansible/roles/flask/tasks/main.yml
-
-
+  roles:
+    - role: flask  # This is the proper way to include roles
 
   handlers:
     - name: Restart flask-app
