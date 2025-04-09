@@ -15,21 +15,27 @@
     group: "{{ app_user }}"
     mode: '0755'
 
-- name: Get AWS credentials from Secrets Manager
-  aws_secret:
-    name: "my-app-deployment-creds"
-    region: "us-east-2"
-  register: aws_creds
-  
-- name: Download application from S3
+# Option 1: Using Jenkins AWS credentials (recommended for CI/CD)
+- name: Download application from S3 using Jenkins credentials
   aws_s3:
     bucket: "{{ s3_bucket }}"
     object: "{{ s3_path }}"
     dest: "/tmp/flask_app.tar.gz"
     mode: get
     region: "{{ aws_region }}"
-    aws_access_key: "{{ aws_creds.secret['access_key'] }}"
-    aws_secret_key: "{{ aws_creds.secret['secret_key'] }}"
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
+    AWS_SECRET_ACCESS_KEY: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
+    AWS_SESSION_TOKEN: "{{ lookup('env', 'AWS_SESSION_TOKEN') | default('') }}"
+
+# OR Option 2: Using IAM instance profile (recommended for production)
+- name: Download application from S3 using instance profile
+  aws_s3:
+    bucket: "{{ s3_bucket }}"
+    object: "{{ s3_path }}"
+    dest: "/tmp/flask_app.tar.gz"
+    mode: get
+    region: "{{ aws_region }}"
 
 - name: Extract application
   unarchive:
@@ -38,6 +44,7 @@
     remote_src: yes
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
+    extra_opts: [--strip-components=1]
 
 - name: Create virtual environment
   pip:
