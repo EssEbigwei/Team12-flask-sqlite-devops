@@ -1,2 +1,2 @@
 [app_servers]
-3.148.243.33 ansible_user=deploy ansible_ssh_private_key_file=/var/lib/jenkins/.ssh/id_rsa
+3.148.180.236 ansible_user=deploy ansible_ssh_private_key_file=/var/lib/jenkins/.ssh/id_rsa

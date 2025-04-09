@@ -29,7 +29,7 @@
         - sqlite
       tags: packages
 
-    # ... [rest of your existing tasks remain the same] ...
+
 
   handlers:
     - name: Restart flask-app
