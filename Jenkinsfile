@@ -77,10 +77,12 @@ pipeline {
                             export ANSIBLE_HOST_KEY_CHECKING=False
                             
                             ansible-playbook -i ansible/inventory ansible/playbook.yaml -vvv \
-                                -e "build_number=${BUILD_NUMBER}" \
-                                -e "s3_bucket=${S3_BUCKET}" \
-                                -e "s3_path=${s3ArtifactPath}" \
-                                -e "aws_region=${AWS_REGION}"
+                            -e "build_number=${BUILD_NUMBER}" \
+                            -e "s3_bucket=${S3_BUCKET}" \
+                            -e "s3_object_path=artifacts/${BUILD_NUMBER}/flask_app.tar.gz" \
+                            -e "aws_access_key=${AWS_ACCESS_KEY_ID}" \
+                            -e "aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
+                            -e "aws_region=${AWS_REGION}"
                         """
                     }
                 }
