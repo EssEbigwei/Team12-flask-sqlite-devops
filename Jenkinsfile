@@ -81,10 +81,10 @@ pipeline {
                         sh """
                             export AWS_ACCESS_KEY_ID='${AWS_ACCESS_KEY_ID}'
                             export AWS_SECRET_ACCESS_KEY='${AWS_SECRET_ACCESS_KEY}'
-                            export AWS_DEFAULT_REGION='${AWS_REGION}'
+                            export AWS_DEFAULT_REGION='us-east-2'
                             export ANSIBLE_HOST_KEY_CHECKING=False
                             
-                            ansible-playbook -i ansible/inventory ansible/playbook.yaml -vvv \
+                            ansible-playbook -i ansible/inventory ansible/playbook.yaml -v \
                                 -e "build_number=${BUILD_NUMBER}" \
                                 -e "s3_bucket=${S3_BUCKET}" \
                                 -e "s3_object_path=${s3ArtifactPath}" \
