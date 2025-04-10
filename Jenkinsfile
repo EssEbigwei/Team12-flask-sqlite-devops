@@ -76,7 +76,7 @@ pipeline {
                         sh """
                             export ANSIBLE_HOST_KEY_CHECKING=False
                             
-                            ansible-playbook -i ansible/inventory ansible/playbook.yaml -v \
+                            ansible-playbook -i ansible/inventory ansible/playbook.yaml -vvv \
                                 -e "build_number=${BUILD_NUMBER}" \
                                 -e "s3_bucket=${S3_BUCKET}" \
                                 -e "s3_path=${s3ArtifactPath}" \
