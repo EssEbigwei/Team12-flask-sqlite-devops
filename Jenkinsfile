@@ -68,27 +68,35 @@ pipeline {
         
         stage('Deploy with Ansible') {
             steps {
-                withAWS(region: "${AWS_REGION}", credentials: 'aws-creds') {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-creds',
+                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
+                ]) {
                     script {
-                        // Get the S3 artifact path for this build
                         def s3ArtifactPath = "artifacts/${BUILD_NUMBER}/flask_app.tar.gz"
                         
+                        // Export AWS credentials for Ansible
                         sh """
+                            export AWS_ACCESS_KEY_ID='${AWS_ACCESS_KEY_ID}'
+                            export AWS_SECRET_ACCESS_KEY='${AWS_SECRET_ACCESS_KEY}'
+                            export AWS_DEFAULT_REGION='${AWS_REGION}'
                             export ANSIBLE_HOST_KEY_CHECKING=False
                             
                             ansible-playbook -i ansible/inventory ansible/playbook.yaml -vvv \
-                            -e "build_number=${BUILD_NUMBER}" \
-                            -e "s3_bucket=${S3_BUCKET}" \
-                            -e "s3_object_path=artifacts/${BUILD_NUMBER}/flask_app.tar.gz" \
-                            -e "aws_access_key=${AWS_ACCESS_KEY_ID}" \
-                            -e "aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
-                            -e "aws_region=${AWS_REGION}"
+                                -e "build_number=${BUILD_NUMBER}" \
+                                -e "s3_bucket=${S3_BUCKET}" \
+                                -e "s3_object_path=${s3ArtifactPath}" \
+                                -e "aws_access_key=${AWS_ACCESS_KEY_ID}" \
+                                -e "aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
+                                -e "aws_region=${AWS_REGION}"
                         """
                     }
                 }
             }
         }
-    }
+    } // <-- Closing bracket for `stages` block
     
     post {
         always {
@@ -96,4 +104,4 @@ pipeline {
             deleteDir()
         }
     }
-}
+} // <-- Closing bracket for `pipeline` block
